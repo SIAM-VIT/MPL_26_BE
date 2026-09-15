@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.pyc
+.venv/
+venv/
+env/
+.env
+*.db
+*.sqlite3
+*.log
+.DS_Store
+# A local frontend checkout for single-origin running (see FRONTEND_DIR).
+# Never commit a copy of the frontend into this repo.
+frontend/
