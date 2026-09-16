@@ -80,3 +80,31 @@ class MainQuestionPublic(BaseModel):
     best_score: int = 0
     status: QuestionStateStatus = QuestionStateStatus.ASSIGNED
     model_config = ConfigDict(from_attributes=True)
+
+
+# ── Question Set Schemas ─────────────────────────────────────────────────────
+
+class QuestionSetBase(BaseModel):
+    name: Optional[str] = None
+    debug_question_id: Optional[int] = None
+    math_question_id: Optional[int] = None
+    leetcode_question_id: Optional[int] = None
+
+
+class QuestionSetCreate(QuestionSetBase):
+    pass
+
+
+class QuestionSetResponse(QuestionSetBase):
+    id: int
+    is_allocated: bool = False
+    allocated_team_id: Optional[int] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuestionSetDetail(QuestionSetResponse):
+    debug_question: Optional[QuestionResponse] = None
+    math_question: Optional[QuestionResponse] = None
+    leetcode_question: Optional[QuestionResponse] = None
+    model_config = ConfigDict(from_attributes=True)
+

@@ -46,3 +46,26 @@ class ReviewMarkSolved(BaseModel):
 
 class AddTimeRequest(BaseModel):
     seconds: int
+
+
+class AssignRandomBoostRequest(BaseModel):
+    difficulty: Optional[str] = "MEDIUM"
+
+
+class VerifyBoostRequest(BaseModel):
+    question_id: int
+    passcode: str
+
+
+class CancelBoostRequest(BaseModel):
+    question_id: int
+
+
+class VerifyChallengeSubmitRequest(BaseModel):
+    session_id: int
+    passcode: str
+
+
+class ResolveChallengeRequest(BaseModel):
+    winner_team_id: int
+

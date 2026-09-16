@@ -15,7 +15,8 @@ class MainSubType(str, enum.Enum):
     """The three flavours of MAIN coding question."""
     DEBUGGING = "DEBUGGING"      # broken starter code, fix it
     MATH = "MATH"                # implement a formula / numeric routine
-    LEETCODE = "LEETCODE"        # classic DSA problem
+    CODING = "CODING"            # classic DSA / coding problem
+    LEETCODE = "LEETCODE"        # keep for backward compatibility
 
 
 class CompareMode(str, enum.Enum):

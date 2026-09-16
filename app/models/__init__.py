@@ -18,6 +18,7 @@ from app.models.enums import (
 )
 from app.models.team import Team
 from app.models.question import Question, TestCase
+from app.models.question_set import QuestionSet
 from app.models.progress import TeamQuestionState
 from app.models.submission import Submission, SubmissionResult
 from app.models.challenge import ChallengeSession
@@ -33,8 +34,10 @@ __all__ = [
     "Team",
     "Question",
     "TestCase",
+    "QuestionSet",
     "TeamQuestionState",
     "Submission",
     "SubmissionResult",
     "ChallengeSession",
 ]
+

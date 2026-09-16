@@ -23,3 +23,4 @@ class Team(Base):
     main_question_id = Column(Integer, ForeignKey("questions.id"), nullable=True)
 
     question_states = relationship("TeamQuestionState", back_populates="team")
+    question_set = relationship("QuestionSet", back_populates="allocated_team", uselist=False)

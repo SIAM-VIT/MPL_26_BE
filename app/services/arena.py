@@ -10,7 +10,7 @@ from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.models import CompareMode, Question, QuestionType, Team, TestCase
+from app.models import CompareMode, Question, QuestionType, QuestionSet, Team, TestCase
 from app.schemas import MainQuestionPublic, TestCasePublic
 from app.services.progress import get_state
 from app.services.questions import starter_bundle
@@ -18,13 +18,23 @@ from app.services.questions import starter_bundle
 
 async def team_question_views(db: AsyncSession, team: Team) -> List[MainQuestionPublic]:
     """The team's MAIN questions. Hidden tests are stripped here."""
-    questions = (
-        await db.execute(
-            select(Question)
-            .where(Question.type == QuestionType.MAIN)
-            .order_by(Question.order_index, Question.id)
-        )
-    ).scalars().all()
+    # Check if team has an allocated question set
+    qs_res = await db.execute(
+        select(QuestionSet).where(QuestionSet.allocated_team_id == team.id)
+    )
+    question_set = qs_res.scalars().first()
+
+    if question_set and question_set.questions:
+        questions = question_set.questions
+    else:
+        questions = (
+            await db.execute(
+                select(Question)
+                .where(Question.type == QuestionType.MAIN)
+                .order_by(Question.order_index, Question.id)
+            )
+        ).scalars().all()
+
 
     out: List[MainQuestionPublic] = []
     for question in questions:

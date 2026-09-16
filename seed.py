@@ -15,7 +15,7 @@ import sys
 
 import requests
 
-from seeding.questions import QUESTIONS, TEAMS
+from seeding.questions import QUESTIONS, TEAMS, QUESTION_SETS_CONFIG
 
 BASE_URL = sys.argv[2] if len(sys.argv) > 2 and sys.argv[1] == "--url" else "http://localhost:8000"
 ADMIN_HEADERS = {"admin-passcode": "admin123", "Content-Type": "application/json"}
@@ -46,23 +46,17 @@ def main():
     print(f"  Target: {BASE_URL}")
     print("=" * 60)
 
-    print("\nCreating teams...")
-    for team in TEAMS:
-        code, res = api_call("POST", "/api/admin/teams", team)
-        if code == 200:
-            print(f"  OK    {team['name']} (id={res.get('id')}) passcode: {team['passcode']}")
-        else:
-            print(f"  SKIP  {team['name']}: {res.get('detail', res)}")
-
     print("\nCreating MAIN questions...")
+    title_to_id = {}
     for question in QUESTIONS:
-        cases = question.pop("_cases")
+        cases = question.pop("_cases") if "_cases" in question else []
         code, res = api_call("POST", "/api/admin/questions", question)
         if code != 200:
             print(f"  FAIL  {question['title']}: {res}")
             continue
 
         qid = res["id"]
+        title_to_id[question["title"]] = qid
         code, res = api_call(
             "POST", f"/api/admin/questions/{qid}/test-cases", cases, params={"replace": "true"}
         )
@@ -70,14 +64,40 @@ def main():
         print(f"  {status}   [{question['sub_type']:<9}] {question['title']} "
               f"(id={qid}, {len(cases)} tests, {question['points']} pts)")
 
+    print("\nCreating Question Sets (3 layers: Debug, Math, Leetcode)...")
+    for qset in QUESTION_SETS_CONFIG:
+        payload = {
+            "name": qset["name"],
+            "debug_question_id": title_to_id.get(qset["debug"]),
+            "math_question_id": title_to_id.get(qset["math"]),
+            "leetcode_question_id": title_to_id.get(qset["leetcode"]),
+        }
+        code, res = api_call("POST", "/api/admin/question-sets", payload)
+        if code == 200:
+            print(f"  OK    {qset['name']} -> Debug: {payload['debug_question_id']}, "
+                  f"Math: {payload['math_question_id']}, Leetcode: {payload['leetcode_question_id']}")
+        else:
+            print(f"  FAIL  {qset['name']}: {res}")
+
+    print("\nCreating TIME_BOOST (Bidding) questions...")
+    from seeding.questions import TIME_BOOST_QUESTIONS
+    for boost in TIME_BOOST_QUESTIONS:
+        cases = boost.pop("_cases") if "_cases" in boost else []
+        code, res = api_call("POST", "/api/admin/questions", boost)
+        if code == 200:
+            qid = res["id"]
+            api_call("POST", f"/api/admin/questions/{qid}/test-cases", cases, params={"replace": "true"})
+            print(f"  OK    [{boost['difficulty']:<6}] {boost['title']} (id={qid}, +{boost['reward_value'] // 60}m bonus)")
+        else:
+            print(f"  FAIL  {boost['title']}: {res}")
+
     print("\n" + "=" * 60)
-    print("Done! Team credentials:")
-    for t in TEAMS:
-        print(f"  {t['name']:<14} passcode: {t['passcode']}")
-    print(f"\n  API docs    -> {BASE_URL}/docs")
+    print("Done! Ready for teams to log in and get unique Question Sets.")
+    print(f"  API docs    -> {BASE_URL}/docs")
     print(f"  Leaderboard -> {BASE_URL}/api/admin/leaderboard")
     print("=" * 60)
 
 
 if __name__ == "__main__":
     main()
+

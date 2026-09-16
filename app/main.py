@@ -61,9 +61,13 @@ def read_root():
 # Serve the frontend from the same origin as the API. Useful on event day
 # (one process, one URL, no CORS) and for sharing a preview link.
 # Set FRONTEND_DIR in .env when the frontend lives in its own repo checkout.
-_DEFAULT_FRONTEND_DIR = os.path.join(
+_FRONTEND_DIST = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "dist"
+)
+_FRONTEND_RAW = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend"
 )
+_DEFAULT_FRONTEND_DIR = _FRONTEND_DIST if os.path.isdir(_FRONTEND_DIST) else _FRONTEND_RAW
 _FRONTEND_DIR = settings.FRONTEND_DIR or _DEFAULT_FRONTEND_DIR
 if os.path.isdir(_FRONTEND_DIR):
     app.mount("/ui", StaticFiles(directory=_FRONTEND_DIR, html=True), name="ui")

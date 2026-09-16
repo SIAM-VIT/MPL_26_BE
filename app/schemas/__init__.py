@@ -13,6 +13,10 @@ from app.schemas.questions import (
     TestCaseAdmin,
     TestCasePublic,
     MainQuestionPublic,
+    QuestionSetBase,
+    QuestionSetCreate,
+    QuestionSetResponse,
+    QuestionSetDetail,
 )
 from app.schemas.teams import (
     TeamBase,
@@ -23,6 +27,9 @@ from app.schemas.teams import (
     AssignBoost,
     ReviewMarkSolved,
     AddTimeRequest,
+    AssignRandomBoostRequest,
+    VerifyBoostRequest,
+    CancelBoostRequest,
 )
 from app.schemas.submissions import (
     CodeSubmitRequest,
@@ -38,8 +45,11 @@ __all__ = [
     "QuestionBase", "QuestionCreate", "QuestionResponse",
     "TestCaseBase", "TestCaseCreate", "TestCaseAdmin", "TestCasePublic",
     "MainQuestionPublic",
+    "QuestionSetBase", "QuestionSetCreate", "QuestionSetResponse", "QuestionSetDetail",
     "TeamBase", "TeamCreate", "TeamLogin", "TeamStatusResponse",
     "ChallengeCreate", "AssignBoost", "ReviewMarkSolved", "AddTimeRequest",
+    "AssignRandomBoostRequest", "VerifyBoostRequest", "CancelBoostRequest",
     "CodeSubmitRequest", "TestResultOut", "SubmissionOut",
     "LeaderboardRow", "RejudgeResponse",
 ]
+

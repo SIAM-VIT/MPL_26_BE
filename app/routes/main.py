@@ -89,6 +89,16 @@ async def my_submissions(
     ]
 
 
+from pydantic import BaseModel
+from fastapi import HTTPException
+from app.models import Question, QuestionType, TeamQuestionState, QuestionStateStatus
+from app.services.access import now_naive_utc
+
+
+class FinalSubmitRequest(BaseModel):
+    passcode: str
+
+
 @router.get("/clock")
 async def my_clock(team: Team = Depends(get_current_team)):
     started, remaining, expired = time_state(team)
@@ -99,3 +109,80 @@ async def my_clock(team: Team = Depends(get_current_team)):
         "extra_time_seconds": team.extra_time_seconds or 0,
         "expired": expired,
     }
+
+
+@router.post("/final-submit")
+async def final_submit(
+    payload: FinalSubmitRequest,
+    team: Team = Depends(get_current_team),
+    db: AsyncSession = Depends(get_db),
+):
+    """Final volunteer submission for all 3 questions."""
+    submitted_pass = (payload.passcode or "").strip()
+
+    # Check if passcode matches team passcode or admin/volunteer passcode
+    admin_pass = getattr(settings, "ADMIN_PASSCODE", "admin123")
+    if submitted_pass != team.passcode and submitted_pass != admin_pass:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid volunteer/team verification passcode. Please ask your volunteer for assistance.",
+        )
+
+    started, remaining, expired = time_state(team)
+
+    # Calculate time bonus and completion points (1000 completion + 10 pts per remaining minute)
+    remaining_minutes = max(0, int(remaining // 60))
+    completion_points = 1000
+    time_bonus = remaining_minutes * 10
+    total_awarded = completion_points + time_bonus
+
+    # Fetch all MAIN questions
+    main_questions = (
+        await db.execute(
+            select(Question)
+            .where(Question.type == QuestionType.MAIN)
+            .order_by(Question.order_index, Question.id)
+        )
+    ).scalars().all()
+
+    # Mark all question states as SOLVED
+    for q in main_questions:
+        state = (
+            await db.execute(
+                select(TeamQuestionState).where(
+                    TeamQuestionState.team_id == team.id,
+                    TeamQuestionState.question_id == q.id,
+                )
+            )
+        ).scalars().first()
+
+        if not state:
+            state = TeamQuestionState(
+                team_id=team.id,
+                question_id=q.id,
+                status=QuestionStateStatus.SOLVED,
+                best_score=q.points or q.reward_value or 0,
+                first_solved_at=now_naive_utc(),
+            )
+            db.add(state)
+        else:
+            state.status = QuestionStateStatus.SOLVED
+            state.best_score = q.points or q.reward_value or 0
+            if not state.first_solved_at:
+                state.first_solved_at = now_naive_utc()
+
+    team.points = (team.points or 0) + total_awarded
+    db.add(team)
+    await db.commit()
+    await db.refresh(team)
+
+    return {
+        "message": "Challenge verified & submitted successfully!",
+        "completion_points": completion_points,
+        "remaining_minutes": remaining_minutes,
+        "time_bonus": time_bonus,
+        "total_awarded": total_awarded,
+        "team_points": team.points,
+        "is_completed": True,
+    }
+

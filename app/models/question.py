@@ -44,8 +44,14 @@ class Question(Base):
     order_index = Column(Integer, default=0)
 
     testcase_rows = relationship(
-        "TestCase", back_populates="question", cascade="all, delete-orphan"
+        "TestCase", back_populates="question", cascade="all, delete-orphan", lazy="selectin"
     )
+
+    @property
+    def testcases(self):
+        """Convenient alias for testcase_rows."""
+        return self.testcase_rows
+
 
 
 class TestCase(Base):
