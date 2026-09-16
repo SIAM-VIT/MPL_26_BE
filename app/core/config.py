@@ -20,18 +20,11 @@ class Settings(BaseSettings):
 
     # ── Judge (code execution sandbox) ───────────────────────────────────────
     # "piston" -> Piston cloud / local API (https://emkc.org/api/v2/piston/execute) - RECOMMENDED
-    # "judge0" -> real Judge0 CE instance (self-hosted)
     # "mock"   -> local fake judge for development
     JUDGE_BACKEND: str = "piston"
     PISTON_URL: str = "https://emkc.org/api/v2/piston/execute"
 
-    JUDGE0_URL: str = "http://judge0:2358"
-    JUDGE0_AUTH_TOKEN: str = ""          # X-Auth-Token header, set even on internal network
-    JUDGE0_TIMEOUT_SECONDS: float = 30.0  # hard cap for one full batch of test cases
-    JUDGE0_POLL_INTERVAL: float = 0.4
-
-    # DEV ONLY: lets the mock judge really execute python locally so you can
-    # develop questions without Docker. NEVER enable on event day.
+    # DEV ONLY: lets the mock judge execute python locally for offline testing
     MOCK_EXECUTE_PYTHON: bool = True
 
     # ── Limits / guardrails ──────────────────────────────────────────────────
@@ -42,20 +35,11 @@ class Settings(BaseSettings):
     SUBMIT_COOLDOWN_SECONDS: int = 5           # protects the judge queue, NOT an attempt limit
 
     # ── Languages ────────────────────────────────────────────────────────────
-    # Our key -> the Judge0 language name we look for in GET /languages.
-    # Language IDs differ between Judge0 versions, so we resolve by NAME at
-    # startup and only fall back to these hard-coded IDs if that fails.
     LANGUAGE_NAMES: Dict[str, str] = {
-        "python": "Python (3.8.1)",
-        "c": "C (GCC 9.2.0)",
-        "cpp": "C++ (GCC 9.2.0)",
-        "java": "Java (OpenJDK 13.0.1)",
-    }
-    FALLBACK_LANGUAGE_IDS: Dict[str, int] = {
-        "python": 71,
-        "c": 50,
-        "cpp": 54,
-        "java": 62,
+        "python": "Python (3.10)",
+        "c": "C (GCC)",
+        "cpp": "C++ (GCC)",
+        "java": "Java (OpenJDK)",
     }
 
     class Config:

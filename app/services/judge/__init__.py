@@ -2,18 +2,16 @@
 
 Two interchangeable backends:
 
-  * ``MockJudge``    - runs code locally (no Docker). Development only.
-  * ``Judge0Client`` - talks to a self-hosted Judge0 CE instance. Event day.
+  * ``PistonClient`` - runs code via cloud / local Piston execution engine.
+  * ``MockJudge``    - runs code locally for development.
 
-Switch with the ``JUDGE_BACKEND`` env var ("mock" | "judge0"). Nothing else in
-the codebase knows which one is in use.
+Switch with the ``JUDGE_BACKEND`` env var ("piston" | "mock"). Default is "piston".
 
 Submodules:
-    base        JudgeJob / JudgeOutcome DTOs + Judge0 status-id constants
-    execution   local subprocess helpers (mock backend only, NOT a sandbox)
+    base        JudgeJob / JudgeOutcome DTOs + status constants
+    execution   local subprocess helpers (mock backend only)
     mock        MockJudge
-    client      Judge0Client (batch submit over HTTP)
-    polling     Judge0 batch polling loop + base64 decoding helpers
+    piston      PistonClient (HTTP submission)
 
 This package re-exports the public names, so existing imports such as
 ``from app.services.judge import JudgeJob, get_judge`` keep working.
@@ -30,7 +28,6 @@ from app.services.judge.base import (
     STATUS_INTERNAL_ERROR,
 )
 from app.services.judge.mock import MockJudge
-from app.services.judge.client import Judge0Client
 from app.services.judge.piston import PistonClient
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -45,12 +42,10 @@ def get_judge():
     global _client
     if _client is None:
         backend = settings.JUDGE_BACKEND.lower()
-        if backend == "piston":
-            _client = PistonClient()
-        elif backend == "judge0":
-            _client = Judge0Client()
-        else:
+        if backend == "mock":
             _client = MockJudge()
+        else:
+            _client = PistonClient()
     return _client
 
 
@@ -63,6 +58,6 @@ __all__ = [
     "JudgeJob", "JudgeOutcome",
     "PENDING_STATUS_IDS", "STATUS_ACCEPTED", "STATUS_WRONG_ANSWER",
     "STATUS_TIME_LIMIT", "STATUS_COMPILATION_ERROR", "STATUS_INTERNAL_ERROR",
-    "MockJudge", "Judge0Client", "PistonClient",
+    "MockJudge", "PistonClient",
     "get_judge", "reset_judge",
 ]
