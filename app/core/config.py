@@ -19,9 +19,11 @@ class Settings(BaseSettings):
     EVENT_DURATION_SECONDS: int = 7200
 
     # ── Judge (code execution sandbox) ───────────────────────────────────────
-    # "mock"   -> local fake judge, no Docker needed. For development only.
-    # "judge0" -> real Judge0 CE instance (self-hosted). Use this on event day.
-    JUDGE_BACKEND: str = "mock"
+    # "piston" -> Piston cloud / local API (https://emkc.org/api/v2/piston/execute) - RECOMMENDED
+    # "judge0" -> real Judge0 CE instance (self-hosted)
+    # "mock"   -> local fake judge for development
+    JUDGE_BACKEND: str = "piston"
+    PISTON_URL: str = "https://emkc.org/api/v2/piston/execute"
 
     JUDGE0_URL: str = "http://judge0:2358"
     JUDGE0_AUTH_TOKEN: str = ""          # X-Auth-Token header, set even on internal network

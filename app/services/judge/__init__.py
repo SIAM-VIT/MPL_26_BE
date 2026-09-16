@@ -31,6 +31,7 @@ from app.services.judge.base import (
 )
 from app.services.judge.mock import MockJudge
 from app.services.judge.client import Judge0Client
+from app.services.judge.piston import PistonClient
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Factory
@@ -43,7 +44,10 @@ def get_judge():
     """Return the configured judge backend (cached)."""
     global _client
     if _client is None:
-        if settings.JUDGE_BACKEND.lower() == "judge0":
+        backend = settings.JUDGE_BACKEND.lower()
+        if backend == "piston":
+            _client = PistonClient()
+        elif backend == "judge0":
             _client = Judge0Client()
         else:
             _client = MockJudge()
@@ -59,6 +63,6 @@ __all__ = [
     "JudgeJob", "JudgeOutcome",
     "PENDING_STATUS_IDS", "STATUS_ACCEPTED", "STATUS_WRONG_ANSWER",
     "STATUS_TIME_LIMIT", "STATUS_COMPILATION_ERROR", "STATUS_INTERNAL_ERROR",
-    "MockJudge", "Judge0Client",
+    "MockJudge", "Judge0Client", "PistonClient",
     "get_judge", "reset_judge",
 ]

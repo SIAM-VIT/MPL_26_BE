@@ -71,3 +71,35 @@ async def add_time(
                         "extra_time_seconds": team.extra_time_seconds})
     await db.commit()
     return {"message": f"Added {payload.seconds}s", "teams": updated}
+
+
+@router.post("/teams/{team_id}/reset-timer")
+async def reset_timer(
+    team_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(verify_admin),
+):
+    """Reset the main question clock for a team (or all teams with team_id=0).
+    Restarts their timer fresh from now and resets extra time.
+    """
+    from app.services.access import now_naive_utc
+
+    updated = []
+    if team_id == 0:
+        teams = (await db.execute(select(Team))).scalars().all()
+    else:
+        team = (await db.execute(select(Team).where(Team.id == team_id))).scalars().first()
+        if not team:
+            raise HTTPException(status_code=404, detail="Team not found")
+        teams = [team]
+
+    now = now_naive_utc()
+    for team in teams:
+        team.timer_start_time = now
+        team.extra_time_seconds = 0
+        db.add(team)
+        updated.append({"id": team.id, "name": team.name, "timer_start_time": team.timer_start_time})
+
+    await db.commit()
+    return {"message": "Team timer reset successfully", "teams": updated}
+

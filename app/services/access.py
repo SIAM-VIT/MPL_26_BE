@@ -31,16 +31,25 @@ def new_session_token() -> str:
 
 async def get_current_team(
     x_team_token: Optional[str] = Header(None, alias="X-Team-Token"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
     db: AsyncSession = Depends(get_db),
 ) -> Team:
-    if not x_team_token:
-        raise HTTPException(status_code=401, detail="Missing X-Team-Token header")
+    token = x_team_token
+    if not token and authorization:
+        if authorization.startswith("Bearer "):
+            token = authorization[7:].strip()
+        else:
+            token = authorization.strip()
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing authentication token (X-Team-Token or Authorization: Bearer)")
+
     result = await db.execute(
-        select(Team).where(Team.session_token == x_team_token)
+        select(Team).where(Team.session_token == token)
     )
     team = result.scalars().first()
     if not team:
-        raise HTTPException(status_code=401, detail="Invalid or missing team token")
+        raise HTTPException(status_code=401, detail="Invalid or expired team token")
     return team
 
 
