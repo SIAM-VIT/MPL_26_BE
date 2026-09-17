@@ -55,10 +55,11 @@ async def login(login_data: TeamLogin, db: AsyncSession = Depends(get_db)):
             select(Question)
             .where(Question.type == QuestionType.MAIN)
             .order_by(Question.order_index, Question.id)
+            .limit(3)
         )
         assigned_questions = all_q_res.scalars().all()
         if assigned_questions and not team.main_question_id:
-            team.main_question_id = random.choice(assigned_questions).id
+            team.main_question_id = assigned_questions[0].id
 
     # 4. Ensure TeamQuestionState exists for each assigned question
     for question in assigned_questions:

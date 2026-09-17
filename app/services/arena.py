@@ -10,14 +10,15 @@ from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.models import CompareMode, Question, QuestionType, QuestionSet, Team, TestCase
+from app.models import CompareMode, Question, QuestionType, QuestionSet, Team, TestCase, TeamQuestionState, QuestionStateStatus
 from app.schemas import MainQuestionPublic, TestCasePublic
+from app.services.access import now_naive_utc
 from app.services.progress import get_state
 from app.services.questions import starter_bundle
 
 
 async def team_question_views(db: AsyncSession, team: Team) -> List[MainQuestionPublic]:
-    """The team's MAIN questions. Hidden tests are stripped here."""
+    """The team's MAIN questions (always exactly 3 in their set). Hidden tests are stripped here."""
     # Check if team has an allocated question set
     qs_res = await db.execute(
         select(QuestionSet).where(QuestionSet.allocated_team_id == team.id)
@@ -27,13 +28,35 @@ async def team_question_views(db: AsyncSession, team: Team) -> List[MainQuestion
     if question_set and question_set.questions:
         questions = question_set.questions
     else:
-        questions = (
-            await db.execute(
-                select(Question)
-                .where(Question.type == QuestionType.MAIN)
-                .order_by(Question.order_index, Question.id)
-            )
-        ).scalars().all()
+        # Auto-allocate an available question set exclusively to this team
+        unallocated_res = await db.execute(
+            select(QuestionSet)
+            .where(QuestionSet.is_allocated == False)
+            .order_by(QuestionSet.id)
+        )
+        unallocated_qs = unallocated_res.scalars().first()
+        if unallocated_qs:
+            unallocated_qs.is_allocated = True
+            unallocated_qs.allocated_team_id = team.id
+            unallocated_qs.allocated_at = now_naive_utc()
+            db.add(unallocated_qs)
+            await db.commit()
+            await db.refresh(unallocated_qs)
+            questions = unallocated_qs.questions
+        else:
+            # Fallback to the first question set (3 questions)
+            first_qs = (await db.execute(select(QuestionSet).order_by(QuestionSet.id))).scalars().first()
+            if first_qs and first_qs.questions:
+                questions = first_qs.questions
+            else:
+                questions = (
+                    await db.execute(
+                        select(Question)
+                        .where(Question.type == QuestionType.MAIN)
+                        .order_by(Question.order_index, Question.id)
+                        .limit(3)
+                    )
+                ).scalars().all()
 
 
     out: List[MainQuestionPublic] = []
