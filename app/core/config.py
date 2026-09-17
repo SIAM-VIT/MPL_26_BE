@@ -5,7 +5,7 @@ from typing import Dict
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Event Platform API"
     DATABASE_URL: str = "postgresql+asyncpg://postgres:244901@localhost/mplbe"
-    ADMIN_PASSCODE: str = "admin123"
+    ADMIN_PASSCODE: str = "SunSunSunday"
 
     # ── Frontend pairing ─────────────────────────────────────────────────────
     # Folder the API serves at /ui for single-origin event-day running.

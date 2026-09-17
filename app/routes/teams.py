@@ -240,7 +240,7 @@ async def verify_boost(
         raise HTTPException(status_code=404, detail="Team not found")
 
     submitted_pass = (payload.passcode or "").strip()
-    admin_pass = getattr(settings, "ADMIN_PASSCODE", "admin123")
+    admin_pass = getattr(settings, "ADMIN_PASSCODE", "SunSunSunday")
     if submitted_pass != team.passcode and submitted_pass != admin_pass:
         raise HTTPException(
             status_code=401,
@@ -374,7 +374,8 @@ async def submit_challenge_1v1(
             }
 
     # Verify volunteer passcode
-    if payload.passcode.strip() not in ["1234", "admin123", "volunteer123", "pass123"]:
+    valid_passes = ["1234", "SunSunSunday", "volunteer123", "pass123", settings.ADMIN_PASSCODE]
+    if payload.passcode.strip() not in valid_passes:
         raise HTTPException(
             status_code=400,
             detail="Invalid volunteer passcode. Please ask your volunteer to enter their verification passcode.",

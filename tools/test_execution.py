@@ -4,7 +4,7 @@ import httpx
 async def test():
     async with httpx.AsyncClient(timeout=30.0) as client:
         print("--- 1. Testing Judge Health with Piston ---")
-        r = await client.get("http://localhost:8000/api/admin/judge/health", headers={"admin-passcode": "admin123"})
+        r = await client.get("http://localhost:8000/api/admin/judge/health", headers={"admin-passcode": "SunSunSunday"})
         print("Health check:", r.status_code, r.json())
 
         print("\n--- 2. Logging in as Team Alpha ---")

@@ -121,7 +121,7 @@ async def final_submit(
     submitted_pass = (payload.passcode or "").strip()
 
     # Check if passcode matches team passcode or admin/volunteer passcode
-    admin_pass = getattr(settings, "ADMIN_PASSCODE", "admin123")
+    admin_pass = getattr(settings, "ADMIN_PASSCODE", "SunSunSunday")
     if submitted_pass != team.passcode and submitted_pass != admin_pass:
         raise HTTPException(
             status_code=401,

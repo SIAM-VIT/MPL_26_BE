@@ -16,7 +16,7 @@ import time
 import requests
 
 BASE = sys.argv[1].rstrip("/")
-ADMIN = {"admin-passcode": "admin123", "Content-Type": "application/json"}
+ADMIN = {"admin-passcode": "SunSunSunday", "Content-Type": "application/json"}
 OUT = []
 
 TS = re.compile(r"\d{4}-\d{2}-\d{2}[T ][\d:.]+")

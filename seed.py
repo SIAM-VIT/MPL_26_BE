@@ -18,7 +18,7 @@ import requests
 from seeding.questions import QUESTIONS, TEAMS, QUESTION_SETS_CONFIG
 
 BASE_URL = sys.argv[2] if len(sys.argv) > 2 and sys.argv[1] == "--url" else "http://localhost:8000"
-ADMIN_HEADERS = {"admin-passcode": "admin123", "Content-Type": "application/json"}
+ADMIN_HEADERS = {"admin-passcode": os.getenv("ADMIN_PASSCODE", "SunSunSunday"), "Content-Type": "application/json"}
 
 
 def api_call(method, path, data=None, params=None):
