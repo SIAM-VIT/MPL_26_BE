@@ -37,6 +37,13 @@ class ChallengeCreate(BaseModel):
 
 class AssignBoost(BaseModel):
     question_id: int
+    deduct_amount: Optional[int] = 0
+
+
+class AssignBiddingRequest(BaseModel):
+    team_id: int
+    question_id: int
+    deduct_amount: Optional[int] = 0
 
 
 class ReviewMarkSolved(BaseModel):
@@ -57,6 +64,11 @@ class VerifyBoostRequest(BaseModel):
     passcode: str
 
 
+class VerifyMainQuestionRequest(BaseModel):
+    question_id: int
+    passcode: str
+
+
 class CancelBoostRequest(BaseModel):
     question_id: int
 
@@ -68,4 +80,5 @@ class VerifyChallengeSubmitRequest(BaseModel):
 
 class ResolveChallengeRequest(BaseModel):
     winner_team_id: int
+
 

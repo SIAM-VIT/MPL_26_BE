@@ -211,16 +211,18 @@ async def get_active_boost(team_id: int, db: AsyncSession = Depends(get_db)):
     ).scalars().all()
 
     diff_val = question.difficulty.value if hasattr(question.difficulty, 'value') else str(question.difficulty or 'MEDIUM')
-    reward = question.reward_value or (300 if diff_val.upper() == "EASY" else 600 if diff_val.upper() == "MEDIUM" else 900)
+    diff_upper = diff_val.upper()
+    reward_pts = 500 if "EASY" in diff_upper else 1000 if "HARD" in diff_upper else 800
 
     return {
         "active_boost": {
             "id": question.id,
             "title": question.title,
             "description": question.description,
-            "difficulty": diff_val.upper(),
-            "reward_seconds": reward,
-            "reward_minutes": max(1, reward // 60),
+            "difficulty": diff_upper,
+            "reward_points": reward_pts,
+            "reward_seconds": reward_pts,
+            "reward_minutes": max(1, reward_pts // 60),
             "sample_tests": [
                 {"stdin": c.stdin, "expected_output": c.expected_output}
                 for c in cases
@@ -234,7 +236,7 @@ async def verify_boost(
     payload: VerifyBoostRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Volunteer verification for time-boost question."""
+    """Volunteer verification for bidding question (awards points)."""
     team = (await db.execute(select(Team).where(Team.id == team_id))).scalars().first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
@@ -260,21 +262,19 @@ async def verify_boost(
     if not state:
         raise HTTPException(
             status_code=400,
-            detail="This boost question is not currently active for your team.",
+            detail="This bidding question is not currently active for your team.",
         )
 
     question = (
         await db.execute(select(Question).where(Question.id == payload.question_id))
     ).scalars().first()
 
-    reward = (
-        (question.reward_value if question else None)
-        or (300 if getattr(question, "difficulty", "MEDIUM") == "EASY" else 600 if getattr(question, "difficulty", "MEDIUM") == "MEDIUM" else 900)
-    )
+    diff_str = str(getattr(question, "difficulty", "MEDIUM")).upper()
+    reward_pts = 500 if "EASY" in diff_str else 1000 if "HARD" in diff_str else 800
 
     state.status = QuestionStateStatus.SOLVED
-    state.best_score = reward
-    team.extra_time_seconds = (team.extra_time_seconds or 0) + reward
+    state.best_score = reward_pts
+    team.points = (team.points or 0) + reward_pts
 
     db.add(state)
     db.add(team)
@@ -282,10 +282,9 @@ async def verify_boost(
     await db.refresh(team)
 
     return {
-        "message": f"Time Boost verified! Added +{reward // 60}m ({reward}s) to your countdown timer.",
-        "reward_seconds": reward,
-        "reward_minutes": reward // 60,
-        "extra_time_seconds": team.extra_time_seconds,
+        "message": f"Bidding question verified! +{reward_pts} PTS awarded to your team.",
+        "reward_points": reward_pts,
+        "team_points": team.points,
     }
 
 
@@ -311,7 +310,7 @@ async def cancel_boost(
         db.add(state)
         await db.commit()
 
-    return {"message": "Time boost question cancelled."}
+    return {"message": "Bidding question cancelled."}
 
 
 @router.post("/{team_id}/challenge-submit")
@@ -362,7 +361,7 @@ async def submit_challenge_1v1(
                 "success": True,
                 "is_winner": True,
                 "already_done": False,
-                "message": "Your team has already won this challenge battle (+100 pts)!",
+                "message": "Your team has already won this challenge battle (+500 pts)!",
             }
         else:
             return {
@@ -370,7 +369,7 @@ async def submit_challenge_1v1(
                 "is_winner": False,
                 "already_done": True,
                 "winner_name": winner_name,
-                "message": f"Team {winner_name} already completed this challenge first! You lost this battle (-100 pts).",
+                "message": f"Team {winner_name} already completed this challenge first! You lost this battle (-500 pts).",
             }
 
     # Verify volunteer passcode
@@ -382,20 +381,20 @@ async def submit_challenge_1v1(
         )
 
     # Mark this team as WINNER and close the session
-    stake_points = 100
+    stake_points = 500
     session.winner_team_id = team_id
     session.status = ChallengeStatus.COMPLETED
     db.add(session)
 
-    # Winner gets +100 points
+    # Winner gets +500 points
     team.points = (team.points or 0) + stake_points
     db.add(team)
 
-    # Opponent losers lose 100 points
+    # Opponent losers lose 500 points (allow negative points)
     for lid in loser_ids:
         lt = (await db.execute(select(Team).where(Team.id == lid))).scalars().first()
         if lt:
-            lt.points = max(0, (lt.points or 0) - stake_points)
+            lt.points = (lt.points or 0) - stake_points
             db.add(lt)
 
     await db.commit()
@@ -409,5 +408,6 @@ async def submit_challenge_1v1(
         "new_team_points": team.points,
         "message": f"VICTORY! Your team finished first and won {stake_points} points!",
     }
+
 
 

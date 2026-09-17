@@ -29,7 +29,9 @@ from app.schemas.teams import (
     AddTimeRequest,
     AssignRandomBoostRequest,
     VerifyBoostRequest,
+    VerifyMainQuestionRequest,
     CancelBoostRequest,
+    AssignBiddingRequest,
 )
 from app.schemas.submissions import (
     CodeSubmitRequest,
@@ -47,9 +49,10 @@ __all__ = [
     "MainQuestionPublic",
     "QuestionSetBase", "QuestionSetCreate", "QuestionSetResponse", "QuestionSetDetail",
     "TeamBase", "TeamCreate", "TeamLogin", "TeamStatusResponse",
-    "ChallengeCreate", "AssignBoost", "ReviewMarkSolved", "AddTimeRequest",
-    "AssignRandomBoostRequest", "VerifyBoostRequest", "CancelBoostRequest",
+    "ChallengeCreate", "AssignBoost", "AssignBiddingRequest", "ReviewMarkSolved", "AddTimeRequest",
+    "AssignRandomBoostRequest", "VerifyBoostRequest", "VerifyMainQuestionRequest", "CancelBoostRequest",
     "CodeSubmitRequest", "TestResultOut", "SubmissionOut",
     "LeaderboardRow", "RejudgeResponse",
 ]
+
 

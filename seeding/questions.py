@@ -354,40 +354,31 @@ def challenge_q(title, description, difficulty="HARD", reward=100):
 
 
 CHALLENGE_QUESTIONS = [
-    challenge_q(
-        "Challenge: Longest Balanced Parentheses",
-        "Given a string containing just the characters '(' and ')', find the length of the longest valid (well-formed) parentheses substring.\n\n"
-        "Input:  a string of parentheses\n"
-        "Output: maximum length of valid parentheses substring\n\n"
-        "First team in the 1v1 / 1v1v1 battle to demonstrate working code and volunteer-verify wins 100 points from the opponents!",
-        "HARD",
-        100,
-    ),
-    challenge_q(
-        "Challenge: Shortest Path in Obstacle Grid",
-        "You are given an m x n integer matrix grid where grid[i][j] = 0 (empty) or 1 (obstacle). "
-        "Find the minimum steps to walk from top-left (0, 0) to bottom-right (m-1, n-1).\n\n"
-        "Input:  Line 1: m n\n        Next m lines: n space-separated integers\n"
-        "Output: minimum steps or -1 if unreachable",
-        "HARD",
-        100,
-    ),
-    challenge_q(
-        "Challenge: Maximum XOR of Two Numbers",
-        "Given an integer array nums, return the maximum result of nums[i] XOR nums[j], where 0 <= i <= j < n.\n\n"
-        "Input:  Line 1: n\n        Line 2: n space-separated integers\n"
-        "Output: maximum XOR value",
-        "HARD",
-        100,
-    ),
-    challenge_q(
-        "Challenge: Matrix Transpose & Trace",
-        "Given an N x N matrix, calculate its transpose and the sum of its diagonal elements (trace).\n\n"
-        "Input:  Line 1: N\n        Next N lines: N space-separated integers\n"
-        "Output: Line 1: trace\n        Next N lines: transposed matrix",
-        "MEDIUM",
-        100,
-    ),
+    challenge_q("Challenge: c.1", "A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost in cents?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.2", "You have a 3 * 3 * 3 wooden cube painted red on the outside. If you cut it into 27 unit cubes, how many unit cubes have EXACTLY 2 red faces?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.3", "What is the next number in the sequence: 2, 3, 5, 9, 17, ...?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.4", "In a room of 50 students, 30 take Math, 25 take Physics, and 10 take neither. How many take BOTH Math and Physics?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.5", "Which is larger: 2^30 or 3^20?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.6", "If 5 machines take 5 minutes to make 5 widgets, how many minutes does it take 100 machines to make 100 widgets?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.7", "A circle is inscribed inside a square of side length 10. What is the ratio of the area of the square to the area of the circle? Express in terms of pi.\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.8", "You flip 3 fair coins. What is the probability of getting AT LEAST two heads?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.9", "What is the decimal value of the 8-bit binary operation 11011010 AND 10101100?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.10", "If x + (1/x) = 4, what is the value of x^2 + (1/x^2)?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.11", "What is the remainder when 2^100 is divided by 3?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.12", "How many distinct 4-letter arrangements can be formed using the letters in the word 'DATA'?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.13", "If an algorithm performs N log2(N) operations, how many operations does it take when N = 64?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.14", "Alice can build a system in 3 hours, and Bob can build it in 6 hours. Working together at their constant rates, how many hours does it take them?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.15", "How many bits are required to represent the decimal number 255 in unsigned binary?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.16", "A clock strikes 6 times in 5 seconds. Assuming equal time intervals between strikes, how many seconds will it take to strike 12 times?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.17", "If A is a 2 * 2 matrix with det(A) = 5, what is det(2A)?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.18", "You roll two standard 6-sided dice. What is the most likely sum of the two dice?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.19", "Evaluate the infinite sum: 1/2 + 1/4 + 1/8 + 1/16 + ...\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.20", "Binary search takes 5 steps to find an element in a sorted list of size 32. How many steps will it take at most for a sorted list of size 1,024?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.21", "How many total squares of any size are there on a standard 4 * 4 grid?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.22", "What is the value of 100^2 - 99^2 + 98^2 - 97^2 + ... + 2^2 - 1^2?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.23", "A right triangle has a hypotenuse of length 10 and one angle of 30 deg. What is the area of the triangle?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
+    challenge_q("Challenge: c.24", "You drive to a nearby town at 30 mph and return along the exact same route at 60 mph. What is your average speed for the entire round trip in mph?\n\nType: Challenge Round | 1v1 Battle", "HARD", 100),
 ]
+
 
 

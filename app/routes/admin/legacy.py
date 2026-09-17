@@ -15,9 +15,10 @@ from app.models import (
 )
 import random
 from app.schemas import (
-    ChallengeCreate, AssignBoost, ReviewMarkSolved,
+    ChallengeCreate, AssignBoost, AssignBiddingRequest, ReviewMarkSolved,
     AssignRandomBoostRequest,
 )
+
 from app.routes.admin.deps import verify_admin
 from app.models.enums import QuestionDifficulty
 from app.services.settings import is_challenge_portal_unlocked, set_challenge_portal_unlocked
@@ -149,13 +150,19 @@ async def assign_random_boost(
 
 
 @router.post("/teams/{team_id}/assign-boost")
-async def assign_boost(team_id: int, boost: AssignBoost, db: AsyncSession = Depends(get_db), _: None = Depends(verify_admin)):
+async def assign_boost_team(team_id: int, boost: AssignBoost, db: AsyncSession = Depends(get_db), _: None = Depends(verify_admin)):
     team = (await db.execute(select(Team).where(Team.id == team_id))).scalars().first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
     question = (await db.execute(select(Question).where(Question.id == boost.question_id))).scalars().first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
+
+    # Deduct bid amount from team points (negative balance allowed)
+    deduct = boost.deduct_amount or 0
+    if deduct > 0:
+        team.points = (team.points or 0) - deduct
+        db.add(team)
 
     existing = (
         await db.execute(
@@ -165,18 +172,30 @@ async def assign_boost(team_id: int, boost: AssignBoost, db: AsyncSession = Depe
             )
         )
     ).scalars().first()
+    
     if existing:
-        raise HTTPException(status_code=400, detail="That question is already assigned to this team")
-
-    db.add(
-        TeamQuestionState(
-            team_id=team_id,
-            question_id=boost.question_id,
-            status=QuestionStateStatus.ASSIGNED,
+        existing.status = QuestionStateStatus.ASSIGNED
+        db.add(existing)
+    else:
+        db.add(
+            TeamQuestionState(
+                team_id=team_id,
+                question_id=boost.question_id,
+                status=QuestionStateStatus.ASSIGNED,
+            )
         )
-    )
     await db.commit()
-    return {"message": "Time boost assigned"}
+    await db.refresh(team)
+    return {
+        "message": f"Bidding question #{question.id} assigned to team {team.name}. Deducted {deduct} pts.",
+        "team_points": team.points,
+    }
+
+
+@router.post("/assign-boost")
+async def assign_boost_general(payload: AssignBiddingRequest, db: AsyncSession = Depends(get_db), _: None = Depends(verify_admin)):
+    return await assign_boost_team(payload.team_id, AssignBoost(question_id=payload.question_id, deduct_amount=payload.deduct_amount), db, _)
+
 
 
 from app.schemas.teams import ResolveChallengeRequest
@@ -363,23 +382,23 @@ async def resolve_challenge(
     session.status = ChallengeStatus.COMPLETED
     db.add(session)
 
-    stake_points = 100
-    # Winner gains +100
+    stake_points = 500
+    # Winner gains +500
     if winner_team:
         winner_team.points = (winner_team.points or 0) + stake_points
         db.add(winner_team)
 
-    # Losers lose 100 each
+    # Losers lose 500 each (allow negative points)
     for lid in loser_ids:
         lt = (await db.execute(select(Team).where(Team.id == lid))).scalars().first()
         if lt:
-            lt.points = max(0, (lt.points or 0) - stake_points)
+            lt.points = (lt.points or 0) - stake_points
             db.add(lt)
 
     await db.commit()
 
     return {
-        "message": f"Match resolved! {winner_team.name if winner_team else winner_id} won 100 points.",
+        "message": f"Match resolved! {winner_team.name if winner_team else winner_id} won 500 points.",
         "winner_name": winner_team.name if winner_team else str(winner_id),
     }
 
@@ -407,12 +426,15 @@ async def mark_solved(review: ReviewMarkSolved, db: AsyncSession = Depends(get_d
         )
         state = state_result.scalars().first()
         if state:
+            diff_str = str(getattr(question, "difficulty", "MEDIUM")).upper()
+            reward_pts = 500 if "EASY" in diff_str else 1000 if "HARD" in diff_str else 800
             state.status = QuestionStateStatus.SOLVED
-            team.extra_time_seconds = (team.extra_time_seconds or 0) + question.reward_value
+            state.best_score = reward_pts
+            team.points = (team.points or 0) + reward_pts
             db.add(state)
             db.add(team)
             await db.commit()
-            return {"message": "Time boost solved, time added"}
+            return {"message": f"Bidding question solved! +{reward_pts} PTS awarded to {team.name}."}
 
     elif question.type == QuestionType.CHALLENGE:
         challenge_result = await db.execute(
@@ -434,22 +456,22 @@ async def mark_solved(review: ReviewMarkSolved, db: AsyncSession = Depends(get_d
             loser_id = challenge.team2_id if challenge.team1_id == review.team_id else challenge.team1_id
             loser_team = (await db.execute(select(Team).where(Team.id == loser_id))).scalars().first() if loser_id else None
             
-            # Winner gains 100, loser loses 100
-            team.points = (team.points or 0) + 100
+            # Winner gains 500, loser loses 500 (allow negative)
+            team.points = (team.points or 0) + 500
             if loser_team:
-                loser_team.points = max(0, (loser_team.points or 0) - 100)
+                loser_team.points = (loser_team.points or 0) - 500
                 db.add(loser_team)
 
             db.add(challenge)
             db.add(team)
             await db.commit()
-            return {"message": f"1v1 Challenge won by {team.name}! +100 points transferred from {loser_team.name if loser_team else 'opponent'}."}
+            return {"message": f"1v1 Challenge won by {team.name}! +500 points transferred from {loser_team.name if loser_team else 'opponent'}."}
 
     if question.type == QuestionType.MAIN:
         return {
-            "message": "MAIN questions are graded automatically by the judge. "
-                       "Use GET /api/admin/leaderboard to see scores."
+            "message": "MAIN questions are graded automatically or via volunteer individual submit."
         }
 
     return {"message": "No active assignment found for this question"}
+
 

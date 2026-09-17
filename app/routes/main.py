@@ -111,16 +111,73 @@ async def my_clock(team: Team = Depends(get_current_team)):
     }
 
 
+class VerifyMainQuestionRequest(BaseModel):
+    question_id: int
+    passcode: str
+
+
+@router.post("/verify-question")
+async def verify_main_question(
+    payload: VerifyMainQuestionRequest,
+    team: Team = Depends(get_current_team),
+    db: AsyncSession = Depends(get_db),
+):
+    """Volunteer verifies an individual MAIN round question."""
+    submitted_pass = (payload.passcode or "").strip()
+    admin_pass = getattr(settings, "ADMIN_PASSCODE", "SunSunSunday")
+    valid_passes = ["1234", "SunSunSunday", "volunteer123", "pass123", admin_pass, team.passcode]
+    if submitted_pass not in valid_passes:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid volunteer verification passcode. Please ask your volunteer for assistance.",
+        )
+
+    # Load question
+    question = (await db.execute(select(Question).where(Question.id == payload.question_id))).scalars().first()
+    if not question or question.type != QuestionType.MAIN:
+        raise HTTPException(status_code=404, detail="Main question not found")
+
+    from app.services.progress import get_state
+    state = await get_state(db, team.id, question.id)
+    if state.status == QuestionStateStatus.SOLVED:
+        return {
+            "message": f"Question '{question.title}' is already verified & solved!",
+            "already_solved": True,
+            "points_awarded": 0,
+            "team_points": team.points,
+        }
+
+    # Points: 2000 for Debug, 2000 for Math, 3000 for Coding
+    pts = question.points or (2000 if question.id <= 220 else 3000)
+    state.status = QuestionStateStatus.SOLVED
+    state.best_score = pts
+    if not state.first_solved_at:
+        state.first_solved_at = now_naive_utc()
+
+    team.points = (team.points or 0) + pts
+    db.add(state)
+    db.add(team)
+    await db.commit()
+    await db.refresh(team)
+
+    return {
+        "message": f"Question '{question.title}' verified & solved! +{pts} PTS awarded.",
+        "question_id": question.id,
+        "points_awarded": pts,
+        "team_points": team.points,
+        "is_solved": True,
+    }
+
+
 @router.post("/final-submit")
 async def final_submit(
     payload: FinalSubmitRequest,
     team: Team = Depends(get_current_team),
     db: AsyncSession = Depends(get_db),
 ):
-    """Final volunteer submission for all 3 questions."""
+    """Legacy/Fallback final volunteer submission for all 3 questions."""
     submitted_pass = (payload.passcode or "").strip()
 
-    # Check if passcode matches team passcode or admin/volunteer passcode
     admin_pass = getattr(settings, "ADMIN_PASSCODE", "SunSunSunday")
     if submitted_pass != team.passcode and submitted_pass != admin_pass:
         raise HTTPException(
@@ -130,13 +187,11 @@ async def final_submit(
 
     started, remaining, expired = time_state(team)
 
-    # Calculate time bonus and completion points (1000 completion + 10 pts per remaining minute)
     remaining_minutes = max(0, int(remaining // 60))
     completion_points = 1000
     time_bonus = remaining_minutes * 10
     total_awarded = completion_points + time_bonus
 
-    # Fetch all MAIN questions
     main_questions = (
         await db.execute(
             select(Question)
@@ -145,7 +200,6 @@ async def final_submit(
         )
     ).scalars().all()
 
-    # Mark all question states as SOLVED
     for q in main_questions:
         state = (
             await db.execute(
@@ -185,4 +239,5 @@ async def final_submit(
         "team_points": team.points,
         "is_completed": True,
     }
+
 
