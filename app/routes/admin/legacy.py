@@ -20,8 +20,42 @@ from app.schemas import (
 )
 from app.routes.admin.deps import verify_admin
 from app.models.enums import QuestionDifficulty
+from app.services.settings import is_challenge_portal_unlocked, set_challenge_portal_unlocked
+from pydantic import BaseModel
+from typing import Optional
+
+
+class ChallengePortalToggleRequest(BaseModel):
+    is_unlocked: Optional[bool] = None
 
 router = APIRouter()
+
+
+@router.get("/challenge/portal-status")
+async def get_challenge_portal_status(
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(verify_admin)
+):
+    """Check whether the challenge arena is currently unlocked for all participants."""
+    unlocked = await is_challenge_portal_unlocked(db)
+    return {"is_unlocked": unlocked}
+
+
+@router.post("/challenge/portal-toggle")
+async def toggle_challenge_portal(
+    payload: Optional[ChallengePortalToggleRequest] = None,
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(verify_admin)
+):
+    """Toggle or set the open/unlocked state of the Challenge Arena."""
+    current = await is_challenge_portal_unlocked(db)
+    new_state = payload.is_unlocked if (payload and payload.is_unlocked is not None) else not current
+    await set_challenge_portal_unlocked(db, new_state)
+    state_str = "UNLOCKED & LIVE" if new_state else "LOCKED"
+    return {
+        "is_unlocked": new_state,
+        "message": f"Challenge Arena is now {state_str} for all participants."
+    }
 
 
 @router.post("/teams/{team_id}/assign-random-boost")

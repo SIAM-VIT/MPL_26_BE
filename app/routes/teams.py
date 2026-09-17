@@ -15,8 +15,16 @@ from app.schemas.teams import (
     VerifyBoostRequest, CancelBoostRequest,
     VerifyChallengeSubmitRequest,
 )
+from app.services.settings import is_challenge_portal_unlocked
 
 router = APIRouter()
+
+
+@router.get("/challenge/portal-status")
+async def get_public_challenge_portal_status(db: AsyncSession = Depends(get_db)):
+    """Public status endpoint checking if Challenge Arena is unlocked."""
+    unlocked = await is_challenge_portal_unlocked(db)
+    return {"is_unlocked": unlocked}
 
 # NOTE: these two routes take a raw team_id and require no credential, which is
 # the pre-existing IDOR (any team can read any other team). They are kept
@@ -51,6 +59,7 @@ async def get_team_status(team_id: int, db: AsyncSession = Depends(get_db)) -> D
         ).order_by(ChallengeSession.id.desc())
     )
     all_challenges = challenge_result.scalars().all()
+    portal_unlocked = await is_challenge_portal_unlocked(db)
 
     # Prefer active ongoing session, otherwise most recent session
     active_challenge = next((c for c in all_challenges if c.status == ChallengeStatus.ONGOING), None)
@@ -122,6 +131,7 @@ async def get_team_status(team_id: int, db: AsyncSession = Depends(get_db)) -> D
             "is_winner": is_winner,
             "already_done": already_done,
             "is_triangular": active_challenge.team3_id is not None,
+            "portal_unlocked": portal_unlocked,
         }
     
     return {
@@ -134,7 +144,8 @@ async def get_team_status(team_id: int, db: AsyncSession = Depends(get_db)) -> D
             "main_question_id": team.main_question_id,
         },
         "assigned_time_boosts": [boost.question_id for boost in assigned_boosts],
-        "active_challenge_session": challenge_info
+        "active_challenge_session": challenge_info,
+        "challenge_portal_unlocked": portal_unlocked,
     }
 
 
@@ -310,6 +321,12 @@ async def submit_challenge_1v1(
     db: AsyncSession = Depends(get_db),
 ):
     """Team submits their 1v1 / 1v1v1 challenge solution with volunteer passcode."""
+    if not await is_challenge_portal_unlocked(db):
+        raise HTTPException(
+            status_code=403,
+            detail="The Challenge Arena is currently locked by the event administrators.",
+        )
+
     team = (await db.execute(select(Team).where(Team.id == team_id))).scalars().first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")

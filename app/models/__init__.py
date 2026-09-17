@@ -22,6 +22,7 @@ from app.models.question_set import QuestionSet
 from app.models.progress import TeamQuestionState
 from app.models.submission import Submission, SubmissionResult
 from app.models.challenge import ChallengeSession
+from app.models.setting import AppSetting
 
 __all__ = [
     "QuestionType",
@@ -39,5 +40,6 @@ __all__ = [
     "Submission",
     "SubmissionResult",
     "ChallengeSession",
+    "AppSetting",
 ]
 
