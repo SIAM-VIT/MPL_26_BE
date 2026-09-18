@@ -70,6 +70,12 @@ async def assign_random_boost(
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
 
+    # Deduct bid amount from team points (negative balance allowed)
+    deduct = req.deduct_amount or 0
+    if deduct > 0:
+        team.points = (team.points or 0) - deduct
+        db.add(team)
+
     # Fetch IDs of questions already assigned or solved by this team
     existing_states = (
         await db.execute(
@@ -97,24 +103,27 @@ async def assign_random_boost(
     # Filter out already used ones
     available = [q for q in matching_questions if q.id not in assigned_qids]
 
-    # If all of this difficulty are used, fallback to any unassigned TIME_BOOST question
+    # If all of this difficulty are used by this team, fallback to any of this difficulty
+    if not available and matching_questions:
+        available = list(matching_questions)
+
+    # Fallback to any TIME_BOOST question if none available
     if not available:
         all_boost_q = (
             await db.execute(select(Question).where(Question.type == QuestionType.TIME_BOOST))
         ).scalars().all()
-        available = [q for q in all_boost_q if q.id not in assigned_qids]
+        available = [q for q in all_boost_q if q.id not in assigned_qids] or list(all_boost_q)
 
-    # If still none or no TIME_BOOST questions seeded, create on the fly
+    # If still none, create on the fly
+    reward_pts = 500 if target_diff == QuestionDifficulty.EASY else 1000 if target_diff == QuestionDifficulty.HARD else 800
     if not available:
-        reward_map = {QuestionDifficulty.EASY: 300, QuestionDifficulty.MEDIUM: 600, QuestionDifficulty.HARD: 900}
-        reward = reward_map.get(target_diff, 600)
         fallback_q = Question(
-            title=f"Time Boost ({diff_str.capitalize()}): Algorithmic Speed Challenge",
-            description=f"Quick {diff_str.capitalize()} Challenge: Write an optimized solution in your local IDE, demonstrate it to your volunteer, and verify with their passcode to earn +{reward // 60} minutes bonus.",
+            title=f"Bidding Question ({diff_str.capitalize()}): Algorithmic Speed Challenge",
+            description=f"Quick {diff_str.capitalize()} Challenge: Write an optimized solution in your local IDE, demonstrate it to your volunteer, and verify with their passcode to earn +{reward_pts} PTS.",
             type=QuestionType.TIME_BOOST,
             difficulty=target_diff,
-            reward_value=reward,
-            points=reward,
+            reward_value=reward_pts,
+            points=reward_pts,
         )
         db.add(fallback_q)
         await db.flush()
@@ -136,16 +145,18 @@ async def assign_random_boost(
         )
     )
     await db.commit()
+    await db.refresh(team)
 
     return {
-        "message": "Time boost assigned successfully",
+        "message": f"Bidding question ({diff_str}) assigned successfully to {team.name}. Deducted {deduct} pts.",
         "question": {
             "id": selected_q.id,
             "title": selected_q.title,
             "description": selected_q.description,
-            "difficulty": selected_q.difficulty,
-            "reward_seconds": selected_q.reward_value or (300 if selected_q.difficulty == QuestionDifficulty.EASY else 600 if selected_q.difficulty == QuestionDifficulty.MEDIUM else 900),
-        }
+            "difficulty": selected_q.difficulty.value if hasattr(selected_q.difficulty, 'value') else str(selected_q.difficulty),
+            "reward_points": reward_pts,
+        },
+        "team_points": team.points,
     }
 
 

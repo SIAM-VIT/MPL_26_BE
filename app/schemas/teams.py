@@ -57,6 +57,8 @@ class AddTimeRequest(BaseModel):
 
 class AssignRandomBoostRequest(BaseModel):
     difficulty: Optional[str] = "MEDIUM"
+    deduct_amount: Optional[int] = 0
+
 
 
 class VerifyBoostRequest(BaseModel):
